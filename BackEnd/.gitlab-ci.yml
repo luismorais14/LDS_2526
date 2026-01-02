@@ -1,0 +1,136 @@
+image: mcr.microsoft.com/dotnet/sdk:8.0
+
+stages:
+  - build
+  - test
+  - api-tests
+  - deploy
+
+variables:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
+  DOTNET_NOLOGO: "1"
+
+# ---------------------------
+# BUILD
+# ---------------------------
+build_job:
+  stage: build
+  script:
+    - echo "Restaurar dependências..."
+    - dotnet restore
+    - echo "Compilar solução..."
+    - dotnet build --configuration Release --no-restore
+  artifacts:
+    paths:
+      - '**/bin/'
+      - '**/obj/'
+    expire_in: 1 week
+
+# ---------------------------
+# TEST STAGE
+# ---------------------------
+
+
+test_job:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  script:
+    - echo "Instalar ReportGenerator"
+    - dotnet tool install --global dotnet-reportgenerator-globaltool
+    - export PATH="$PATH:/root/.dotnet/tools"
+    - apt-get update && apt-get install -y bc
+
+    - echo "Criar pasta TestResults"
+    - mkdir -p TestResults
+
+    - echo "A correr testes com cobertura..."
+    - |
+      for proj in $(find . -name "*Tests*.csproj"); do
+        echo "Testando $proj"
+        dotnet test "$proj" \
+          --configuration Release \
+          --collect:"XPlat Code Coverage" \
+          --results-directory TestResults
+      done
+
+    - echo "Gerar Relatório HTML..."
+    - reportgenerator \
+        "-reports:TestResults/**/coverage.cobertura.xml" \
+        "-targetdir:coveragereport" \
+        "-reporttypes:Html;XmlSummary"
+
+
+    - echo "A verificar cobertura mínima das camadas Application e Domain..."
+    - |
+      SUMMARY_FILE=$(find coveragereport -name "Summary.xml" | head -1)
+
+      APP_COVERAGE=$(grep -A3 '<Assembly name="BookFlaz.Application"' "$SUMMARY_FILE" | grep -oP '(?<=coverage=")[0-9\.]+' | head -1 || true)
+
+      DOMAIN_COVERAGE=$(grep -A3 '<Assembly name="BookFlaz.Domain"' "$SUMMARY_FILE" | grep -oP '(?<=coverage=")[0-9\.]+' | head -1 || true)
+
+
+      echo "Cobertura atual:"
+      echo "   - Application: $APP_COVERAGE%"
+      echo "   - Domain:      $DOMAIN_COVERAGE%"
+
+      APP_MIN=60
+      DOMAIN_MIN=60
+
+      FAIL=0
+
+      if (( $(echo "$APP_COVERAGE < $APP_MIN" | bc -l) )); then
+        echo "Falha: Application abaixo de $APP_MIN% ($APP_COVERAGE%)"
+        FAIL=1
+      else
+        echo "Application OK ($APP_COVERAGE%)"
+      fi
+
+      if (( $(echo "$DOMAIN_COVERAGE < $DOMAIN_MIN" | bc -l) )); then
+        echo "Falha: Domain abaixo de $DOMAIN_MIN% ($DOMAIN_COVERAGE%)"
+        FAIL=1
+      else
+        echo "Domain OK ($DOMAIN_COVERAGE%)"
+      fi
+
+  artifacts:
+    when: always
+    paths:
+      - TestResults/
+      - coveragereport/
+    expire_in: 1 week
+
+
+# --------------------------
+# TESTS .NET
+# --------------------------
+
+api_tests:
+  stage: api-tests
+  image: node:18
+
+  before_script:
+    - npm install -g newman newman-reporter-junitfull newman-reporter-html
+
+  script:
+    - echo "A correr testes Postman..."
+    - |
+      newman run tests/postman/bookflaz_integracao.postman_collection.json \
+        -e tests/postman/flaz_env.postman_environment.json \
+        --env-var baseUrl="$BASE_URL" \
+        --env-var AdminEmail="$ADMIN_EMAIL" \
+        --env-var AdminPass="$ADMIN_PASS" \
+        --reporters cli,junitfull,html \
+        --reporter-junitfull-export postman-results.xml \
+        --reporter-html-export postman-report.html
+
+  artifacts:
+    when: always
+    paths:
+      - postman-results.xml
+      - postman-report.html
+      - tests/postman/assets/
+    reports:
+      junit: postman-results.xml
+    expire_in: 1 week
+

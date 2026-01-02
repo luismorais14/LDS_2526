@@ -1,0 +1,191 @@
+<div class="main-container container-fluid py-4">
+  <div class="row g-4">
+    <div class="col-lg-9">
+      <div class="d-flex justify-content-between align-items-start mb-4">
+        <div class="search-container mat-elevation-z4 mb-4">
+          <div class="search-content">
+            <mat-icon class="search-icon">search</mat-icon>
+            <input
+              type="text"
+              placeholder="O que procuras?"
+              [(ngModel)]="filtroTexto"
+              (ngModelChange)="aoPesquisar()"
+              class="custom-input"
+              data-cy = "search-input"
+            />
+
+            @if (filtroTexto) {
+              <button mat-icon-button (click)="filtroTexto = ''; aoPesquisar()">
+                <mat-icon>close</mat-icon>
+              </button>
+            }
+            <div class="divider"></div>
+            <button
+              mat-icon-button
+              (click)="abrirFiltros()"
+              matTooltip="Filtros Avançados"
+            >
+              <mat-icon>tune</mat-icon>
+            </button>
+          </div>
+        </div>
+
+        <button
+          mat-fab
+          color="primary"
+          class="ms-3"
+          [routerLink]="['/criar/anuncio']"
+          matTooltip="Criar Anúncio"
+        >
+          <mat-icon>add</mat-icon>
+        </button>
+      </div>
+      <div class="slider mb-3 text-center">
+        @if (filtroOpen) {
+          <div class="d-flex justify-content-between px-3 mb-1">
+            <small>Min: {{ filtroPrecoMin | currency:'EUR' }}</small>
+            <small>Max: {{ filtroPrecoMax | currency:'EUR' }}</small>
+          </div>
+          <mat-slider
+            min="0"
+            [max]="filtroPrecoMaxGlobal"
+            discrete
+            [displayWith]="formatLabel">
+
+            <input
+              matSliderStartThumb
+              [(ngModel)]="filtroPrecoMin"
+              (ngModelChange)="aoPesquisar()">
+
+            <input
+              matSliderEndThumb
+              [(ngModel)]="filtroPrecoMax"
+              (ngModelChange)="aoPesquisar()">
+
+          </mat-slider>
+      }</div>
+
+      <div class="categories-section mb-3">
+        <mat-tab-group
+          mat-stretch-tabs="false"
+          animationDuration="0ms"
+          (selectedTabChange)="aoSelecionarCategoria($event)"
+        >
+          <mat-tab label="Todas"></mat-tab>
+          @for (categoria of listaCategorias; track categoria.id) {
+            <mat-tab [label]="categoria.nome"></mat-tab>
+          }
+        </mat-tab-group>
+      </div>
+
+      <div class="filters-section mb-4">
+        <mat-chip-listbox aria-label="Seleção de Tipo">
+          @for (tipo of listaTiposAnuncio; track $index) {
+            <mat-chip-option
+              [selected]="tipo === filtroTipoAnuncio"
+              (click)="aoSelecionarTipoAnuncio(tipo)"
+              color="accent"
+            >
+              {{ tipo }}
+            </mat-chip-option>
+          }
+        </mat-chip-listbox>
+      </div>
+
+      <div class="ads-grid">
+        @for (anuncio of anunciosVisiveis; track anuncio.id) {
+          <mat-card class="ad-card mat-elevation-z2" data-cy="anuncio-card">
+            <div class="price-tag">
+              {{
+                anuncio.preco
+                  ? (anuncio.preco | currency : "EUR" : "symbol" : "1.0-0")
+                  : "Grátis"
+              }}
+            </div>
+            <img
+              mat-card-image
+              [src]="anuncio.imagem || 'assets/placeholder.jpg'"
+              [alt]="anuncio.titulo"
+              loading="lazy"
+            />
+            <mat-card-content class="content-box">
+              <h3>{{ anuncio.titulo }}</h3>
+              <p class="desc">
+                {{ anuncio.categoria }} | {{ TipoAnuncio[anuncio.tipoAnuncio] }}
+              </p>
+            </mat-card-content>
+            <mat-card-actions align="end">
+              <button mat-button color="primary">VER MAIS</button>
+            </mat-card-actions>
+          </mat-card>
+        } @empty {
+          <div class="empty-state">
+            <mat-icon>search_off</mat-icon>
+            <p>Não encontrámos resultados para a tua pesquisa.</p>
+            <button mat-button color="warn" (click)="ngOnInit()">
+              Limpar Filtros
+            </button>
+          </div>
+        }
+      </div>
+
+      @if (anunciosVisiveis.length < listaAnuncios.length) {
+        <div class="load-more-container mt-4 text-center">
+          <button mat-stroked-button color="primary" (click)="carregarMais()" data-cy = "load-more-button">
+            CARREGAR MAIS
+            <mat-icon iconPositionEnd>expand_more</mat-icon>
+          </button>
+        </div>
+      }
+
+      <div class="mb-5"></div>
+    </div>
+
+    <div class="col-lg-3 d-none d-lg-block">
+      <div class="position-sticky pe-2" style="top: 1rem">
+        <div
+          class="d-flex justify-content-between align-items-center mb-2 px-2 text-secondary"
+        >
+          <h6 class="fw-bold mb-0 text-muted">Conversas</h6>
+          <div class="d-flex gap-2">
+          </div>
+        </div>
+
+        <div class="contacts-list">
+          @for (conversa of conversasEnriquecidas; track conversa.id) {
+            <div
+              class="contact-item d-flex align-items-center p-2 rounded-3 cursor-pointer"
+              (click)="abrirChat(conversa)"
+              data-cy="conversa-item"
+            >
+
+              <div class="flex-grow-1 text-truncate">
+                        <span
+                          class="fw-medium text-dark d-block text-truncate"
+                          style="font-size: 0.95rem"
+                          [title]="conversa.tituloAnuncio"
+                        >
+                            {{ conversa.tituloAnuncio }}
+                        </span>
+                <span class="text-muted small d-block text-truncate">
+                            Preço: {{ conversa.precoAnuncio | currency: 'EUR' }}
+                        </span>
+              </div>
+            </div>
+          } @empty {
+            <p class="text-muted small px-2">Sem conversas.</p>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<app-chat
+  *ngIf="isChatOpen && indiceConversaAtual"
+  [conversaId]="indiceConversaAtual!"
+  (fechar)="fecharChat()"
+  class="chat-overlay"
+  data-cy="chat-component"
+>
+</app-chat>

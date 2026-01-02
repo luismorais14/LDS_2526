@@ -1,0 +1,92 @@
+<div class="card shadow p-4 p-md-5" style="max-width: 550px; width: 100%;">
+  
+  <h3 class="text-center mb-5">Confirmar pagamento</h3>
+
+  <div *ngIf="isLoading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status"></div>
+  </div>
+  <div *ngIf="erroMsg" class="alert alert-danger">{{ erroMsg }}</div>
+
+  <div *ngIf="pedido && !isLoading">
+    
+    <div class="d-flex gap-4 mb-5 align-items-center product-summary">
+    <img 
+        [src]="pedido.imagemAnuncio ? 'https://flazbooksapi-dncpfkfmd6e8dwbj.germanywestcentral-01.azurewebsites.net/uploads/' + pedido.imagemAnuncio : 'assets/placeholder.png'" 
+        class="shadow-sm"
+        style="width: 140px; height: 200px; object-fit: cover;"
+        alt="Capa do livro"
+      >  
+      <div>
+        <h5 class="product-title">{{ pedido.tituloAnuncio }}</h5>
+        <h4 class="product-price mb-2">{{ pedido.valorProposto | currency:'EUR' }}</h4>
+        <span class="badge bg-light text-dark product-type">{{ pedido.tipoAnuncio }}</span>
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <label class="points-label mb-0" for="pontosSwitch">Trocar pontos</label>
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="pontosSwitch" 
+                  [(ngModel)]="usarPontos" style="width: 3.5rem; height: 1.75rem;">
+        </div>
+      </div>
+
+      <div *ngIf="usarPontos" class="points-slider-container">
+        <div class="d-flex justify-content-between points-limits mb-2">
+          <span>Min</span>
+          <span>Meio</span>
+          <span>{{ maxPontosPermitidos }}</span>
+        </div>
+        
+        <input 
+          type="range" 
+          class="form-range mb-3" 
+          min="0" 
+          [max]="maxPontosPermitidos" 
+          [(ngModel)]="pontosAUsar"
+        >
+        
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="fw-bold text-dark">{{ pontosAUsar }} pontos</span>
+          <span class="badge bg-success bg-opacity-10 text-success fs-6 px-3 py-2">
+            -{{ valorDesconto | currency:'EUR' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <hr>
+
+    <div class="mb-4 totals-area">
+      <div class="d-flex justify-content-between mb-3 align-items-center">
+        <span class="label">Desconto:</span>
+        <span class="discount-value">
+          {{ valorDesconto | currency:'EUR' }} 
+          <small class="text-muted" *ngIf="pedido.valorProposto > 0">
+            ({{ (valorDesconto / pedido.valorProposto) | percent }})
+          </small>
+        </span>
+      </div>
+      
+      <div class="d-flex justify-content-between align-items-center">
+        <span class="total-label">Total:</span>
+        <span class="total-value">{{ totalFinal | currency:'EUR' }}</span>
+      </div>
+
+      <p class="helper-text text-center">
+        Após a troca, os pontos serão deduzidos imediatamente do saldo.
+      </p>
+    </div>
+
+    <div class="d-grid gap-3 d-md-flex">
+      <button class="btn btn-cancel flex-grow-1" (click)="cancelar()">
+        Cancelar
+      </button>
+      <button class="btn btn-confirm flex-grow-1" (click)="confirmarPagamento()">
+        Confirmar
+      </button>
+    </div>
+
+  </div>
+</div>

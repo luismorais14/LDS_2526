@@ -1,0 +1,6 @@
+@BookFlaz_HostAddress = http://localhost:5207
+
+GET {{BookFlaz_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

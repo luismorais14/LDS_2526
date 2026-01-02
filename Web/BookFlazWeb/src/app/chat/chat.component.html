@@ -1,0 +1,146 @@
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+
+  <div class="border rounded shadow bg-white d-flex flex-column" style="width: 360px; height: 460px;">
+
+    <div class="p-2 border-bottom bg-light d-flex justify-content-between align-items-center">
+      <h6 class="m-0">Conversa {{ conversaId }}</h6>
+
+      <button
+        type="button"
+        class="btn btn-sm btn-outline-secondary px-2 py-0"
+        (click)="onFecharClicked()"
+        data-cy = "close-chat-button"
+      >
+        ✕
+      </button>
+    </div>
+
+    <div class="p-3 flex-grow-1 overflow-auto">
+      <div *ngFor="let item of chatItems" class="mb-3">
+
+        <div *ngIf="item.tipo === 'mensagem'">
+          <div
+            class="d-flex"
+            [class.justify-content-end]="isMinhaMensagem(item)"
+            [class.justify-content-start]="!isMinhaMensagem(item)"
+          >
+            <div
+              class="p-2 rounded text-white"
+              [class.bg-primary]="isMinhaMensagem(item)"
+              [class.bg-secondary]="!isMinhaMensagem(item)"
+              style="max-width: 70%;"
+            >
+              {{ item.mensagem.conteudo }}
+
+              <div class="small text-end mt-1 opacity-75">
+                {{ item.mensagem.dataEnvio | date:'shortTime' }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="item.tipo === 'pedido'">
+          <div class="card mx-auto" style="max-width: 320px;">
+            <div class="card-body">
+
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0">Pedido de Transação</h6>
+                <span class="badge bg-warning text-dark">
+                  {{ item.pedido.estado }}
+                </span>
+              </div>
+
+              <p class="mb-1">
+                <strong>Preço:</strong>
+                {{ item.pedido.preco | currency:'EUR':'symbol':'1.2-2' }}
+              </p>
+
+              <p class="mb-1" *ngIf="item.pedido.diasDeAluguel">
+                <strong>Dias de aluguer:</strong> {{ item.pedido.diasDeAluguel }}
+              </p>
+
+              <p class="mb-3">
+                <strong>Data:</strong> {{ item.pedido.dataCriacao | date:'short' }}
+              </p>
+
+              <div class="d-flex justify-content-end gap-2"
+              *ngIf="podeMostrarBotoes(item.pedido)">
+                <button class="btn btn-success btn-sm" (click)="onAceitarPedido(item.pedido)">
+                  Aceitar
+                </button>
+
+                <button class="btn btn-danger btn-sm" (click)="onRecusarPedido(item.pedido)">
+                  Recusar
+                </button>
+              </div>
+              <div class="d-flex justify-content-end gap-2"
+              *ngIf="item.pedido.estado == 'Aceite'">
+                <button class="btn btn-success btn-sm" (click)="onIrParaTransacao(item.pedido)">
+                  Ir para Transação
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="border-top p-2">
+      <div class="btn-group w-100 mb-2">
+        <button
+          class="btn btn-sm"
+          [class.btn-primary]="modoEnvio === 'mensagem'"
+          [class.btn-outline-primary]="modoEnvio !== 'mensagem'"
+          (click)="modoEnvio = 'mensagem'">
+          Mensagem
+        </button>
+        <button
+          class="btn btn-sm"
+          [class.btn-primary]="modoEnvio === 'pedido'"
+          [class.btn-outline-primary]="modoEnvio !== 'pedido'"
+          (click)="modoEnvio = 'pedido'">
+          Pedido de Transação
+        </button>
+      </div>
+
+      <div *ngIf="modoEnvio === 'mensagem'" class="d-flex gap-2">
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Escreve uma mensagem..."
+          [(ngModel)]="novaMensagem"
+        />
+        <button class="btn btn-primary" (click)="onEnviarMensagem()">Enviar</button>
+      </div>
+
+      <div *ngIf="modoEnvio === 'pedido'" class="row g-2 align-items-center">
+        <div class="col-5">
+          <input
+            type="number"
+            class="form-control"
+            placeholder="Preço (€)"
+            [(ngModel)]="precoPedido"
+            min="0"
+          />
+        </div>
+        <div class="col-4">
+          <input
+            type="number"
+            class="form-control"
+            placeholder="Dias"
+            [(ngModel)]="diasPedido"
+            min="1"
+          />
+        </div>
+        <div class="col-3 d-flex justify-content-end">
+          <button class="btn btn-outline-primary w-100" (click)="onEnviarPedido()">
+            Enviar
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,44 @@
+image: cypress/browsers:22.19.0
+
+stages:
+  - build
+  - test
+
+cache:
+  key:
+    files:
+      - Web/BookFlazWeb/package-lock.json
+  paths:
+    - Web/BookFlazWeb/node_modules/
+    - /root/.cache/Cypress/
+
+build_web:
+  stage: build
+  script:
+    - cd Web/BookFlazWeb
+    - npm ci
+    - npx ng build --configuration production
+  artifacts:
+    paths:
+      - Web/BookFlazWeb/dist/
+    expire_in: 1h
+
+test_e2e:
+  stage: test
+  needs: ["build_web"]
+  script:
+    - cd Web/BookFlazWeb
+    - npm ci
+    
+    - npm run start -- --host 0.0.0.0 --port 4200 --no-watch &
+    
+    - npx wait-on http://localhost:4200 --timeout 60000
+    
+    - npx cypress run --headless
+  
+  artifacts:
+    when: always
+    paths:
+      - Web/BookFlazWeb/cypress/videos
+      - Web/BookFlazWeb/cypress/screenshots
+    expire_in: 1 day
